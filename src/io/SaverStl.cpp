@@ -1,3 +1,4 @@
+
 //------------------------------------------------------------------------
 //  Copyright (C) Gabriel Taubin
 //  Time-stamp: <2026-01-26 17:42:17 taubin>
@@ -5,7 +6,7 @@
 //
 // SaverStl.cpp
 //
-// Written by: <Your Name>
+// Written by: Steven Defreitas
 //
 // Software developed for the course
 // Digital Geometry Processing
@@ -47,44 +48,114 @@ const char* SaverStl::_ext = "stl";
 
 //////////////////////////////////////////////////////////////////////
 bool SaverStl::save(const char* filename, SceneGraph& wrl) const {
-  bool success = false;
-  if(filename!=(char*)0) {
+    bool success = false;
+    if(filename!=(char*)0) {
 
-    // Check these conditions
+        // Check these conditions
 
-    // 1) the SceneGraph should have a single child
-    // 2) the child should be a Shape node
-    // 3) the geometry of the Shape node should be an IndexedFaceSet node
+        // 1) the SceneGraph should have a single child
 
-    // - construct an instance of the Faces class from the IndexedFaceSet
-    // - remember to delete it when you are done with it (if necessary)
-    //   before returning
+        if(wrl.getNumberOfChildren() != 1){
+            return false;
+        }
+        // 2) the child should be a Shape node
+        Node* child = wrl.getChildren()[0];
 
-    // 4) the IndexedFaceSet should be a triangle mesh
-    // 5) the IndexedFaceSet should have normals per face
+        if(child->getType() != "Shape"){
+            return false;
+        }
 
-    // if (all the conditions are satisfied) {
+        Shape* shape = (Shape*)child;
+        // 3) the geometry of the Shape node should be an IndexedFaceSet node
+        IndexedFaceSet* ifs = (IndexedFaceSet*)shape->getGeometry();
 
-    FILE* fp = fopen(filename,"w");
-    if(	fp!=(FILE*)0) {
+        if (ifs == nullptr || ifs->getType() != "IndexedFaceSet") {
+            return false;
+        }
 
-      // if set, use ifs->getName()
-      // otherwise use filename,
-      // but first remove directory and extension
+        // - construct an instance of the Faces class from the IndexedFaceSet
+        // - remember to delete it when you are done with it (if necessary)
+        //   before returning
 
-      fprintf(fp,"solid %s\n",filename);
+        int nVert = ifs->getCoord().size() / 3;
+        vector<int> coordIdx = ifs->getCoordIndex();
 
-      // TODO ...
-      // for each face {
-      //   ...
-      // }
-      
-      fclose(fp);
-      success = true;
-    }
+        Faces* faces = new Faces(nVert, coordIdx);
 
-    // } endif (all the conditions are satisfied)
+        // 4) the IndexedFaceSet should be a triangle mesh
+        if(!ifs->isTriangleMesh()) {
+            delete faces;
+            return false;
+        }
 
-  }
-  return success;
+        // 5) the IndexedFaceSet should have normals per face
+        if(ifs->getNormalBinding() != IndexedFaceSet::PB_PER_FACE){
+            delete faces;
+            return false;
+        }
+
+        // if (all the conditions are satisfied) {
+
+        FILE* fp = fopen(filename,"w");
+        if(	fp!=(FILE*)0) {
+
+            string objectName;
+
+            // if set, use ifs->getName()
+            // otherwise use filename,
+            // but first remove directory and extension
+            if(!ifs->getName().empty()){
+                objectName = ifs->getName();
+            } else {
+                objectName = filename;
+
+                size_t endSlash = objectName.find_last_of("/\\");
+                if(endSlash != string::npos){
+                    objectName = objectName.substr(endSlash + 1);
+                }
+
+                size_t endPeriod = objectName.find_last_of('.');
+                if(endPeriod != string::npos){
+                    objectName = objectName.substr(0, endPeriod);
+                }
+            }
+
+            fprintf(fp, "solid %s\n", objectName.c_str());
+
+            int numFaces = faces->getNumberOfFaces();
+
+            for(int iF = 0; iF < numFaces; iF++){
+
+                float nx = ifs->getNormal()[3 * iF + 0];
+                float ny = ifs->getNormal()[3 * iF + 1];
+                float nz = ifs->getNormal()[3 * iF + 2];
+
+                fprintf(fp, "  facet normal %f %f %f\n", nx, ny, nz);
+                fprintf(fp, "    outer loop\n");
+
+                for(int j = 0; j < 3; j++){
+                    int vertIdx = faces->getFaceVertex(iF, j);
+
+                    float vx = ifs->getCoord()[3 * vertIdx + 0];
+                    float vy = ifs->getCoord()[3 * vertIdx + 1];
+                    float vz = ifs->getCoord()[3 * vertIdx + 2];
+
+                    fprintf(fp, "      vertex %f %f %f\n", vx, vy, vz);
+                }
+
+                fprintf(fp, "    endloop\n");
+                fprintf(fp, "  endfacet\n");
+            }
+
+
+
+            fclose(fp);
+            delete faces;
+            success = true;
+        }
+
+        // } endif (all the conditions are satisfied)
+
+        }
+    return success;
 }

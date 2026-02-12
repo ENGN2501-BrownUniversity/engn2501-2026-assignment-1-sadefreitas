@@ -5,7 +5,7 @@
 //
 // Faces.cpp
 //
-// Written by: <Your Name>
+// Written by: Steven Defreitas
 //
 // Software developed for the course
 // Digital Geometry Processing
@@ -38,46 +38,169 @@
 #include "Faces.hpp"
   
 Faces::Faces(const int nV, const vector<int>& coordIndex) {
-  // TODO
+    this->coordIndex = coordIndex;
+    
+    int count = 0;
+    
+    for(int idx : coordIndex) {
+        if(idx >= 0){
+            count++;
+        }
+    }
+    
+    if(count > nV){
+        this->nV = count;
+    } else {
+        this->nV = nV;
+    }
 }
 
 int Faces::getNumberOfVertices() const {
-  // TODO
-  return 0;
+  return nV;
 }
 
 int Faces::getNumberOfFaces() const {
-  // TODO
-  return 0;
+    int count = 0;
+    
+    for(int idx : coordIndex){
+        if(idx == -1){
+            count++;
+        }
+    }
+    
+    return count;
 }
 
 int Faces::getNumberOfCorners() const {
-  // TODO
-  return 0;
+  return coordIndex.size();
 }
 
 int Faces::getFaceSize(const int iF) const {
-  // TODO
-  return 0;
+    
+    if(iF < 0){
+        return 0; // return 0 for negative iF index values
+    }
+    
+    // initialize count vars for the current face and corner count
+    int currentFace = 0;
+    int corners = 0;
+    
+    for(int idx : coordIndex){
+        if(idx == -1){ // if you hit a face boundary
+            if(iF == currentFace){ // and if we are at the right face index
+                return corners; // return the count we have established
+            }
+            currentFace++; // otherwise increment to the next face
+            corners = 0; // and reset corners to 0
+        } else { // if we aren't at a face boundary
+            if(iF == currentFace){ // and we're in the right index
+                corners++; // increment the corner count
+            }
+        }
+    }
+    
+    return 0; // return 0 if out of bounds
 }
 
 int Faces::getFaceFirstCorner(const int iF) const {
-  // TODO
-  return -1;
+    if(iF < 0){ // if the input index is negative
+        return -1; // return -1
+    }
+    
+    // initialize face counter
+    int currentFace = 0;
+    
+    for(int idx : coordIndex){
+        if(currentFace == iF){ // if wer're in the correct face index
+            return idx; // return the current value in coordIndex
+            // this should trigger right after switching into the correct face
+            // so it will return the first corner in the face
+        }
+        
+        if(idx == -1){ // if we hit a face boundary
+            currentFace++; // increment the face counter
+        }
+        
+        // otherwise just move to the next element of coordIndex
+    }
+    
+  return -1; // return -1 if we're out of bounds
 }
 
 int Faces::getFaceVertex(const int iF, const int j) const {
-  // TODO
-  return -1;
+    if(iF < 0){ // if the input face index is negative
+        return -1; // return -1
+    }
+    
+    if(j < 0){ // if the input corner index is negative
+        return -1; // return -1
+    }
+    
+    // initialize face and index counters
+    int currentFace = 0;
+    int vertexInFace = 0;  // Track position within current face
+
+    for(int idx : coordIndex){
+        if(idx == -1){
+            currentFace++;
+            vertexInFace = 0;  // Reset for next face
+        } else {
+            if(currentFace == iF && vertexInFace == j){
+                return idx;
+            }
+            vertexInFace++;
+        }
+    }
+
+    return -1;
 }
 
 int Faces::getCornerFace(const int iC) const {
-  // TODO
-  return -1;
+    if(iC < 0 || iC >= (int)coordIndex.size()){
+        return -1;
+    }
+    
+    if(coordIndex[iC] == -1){
+        return -1;
+    }
+    
+    int currentFace = 0;
+    int idxCount = 0;
+    
+    for(int idx : coordIndex){
+        if(idxCount == iC){
+            return currentFace;
+        }
+        
+        if(idx == -1){
+            currentFace++;
+        }
+        
+        idxCount++;
+    }
+    
+    return -1;
 }
 
 int Faces::getNextCorner(const int iC) const {
-  // TODO
-  return -1;
+    if(iC < 0 || iC >= (int)coordIndex.size()){
+        return -1;
+    }
+    
+    if(coordIndex[iC] == -1){
+        return -1;
+    }
+    
+    if(iC + 1 < (int)coordIndex.size() && coordIndex[iC + 1] != -1){
+        return iC + 1;
+    }
+        
+    int faceStart = iC;
+    while(faceStart > 0 && coordIndex[faceStart - 1] != -1){
+        faceStart--;
+    }
+        
+    return faceStart;
+    
 }
 
