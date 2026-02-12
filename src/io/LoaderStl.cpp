@@ -5,7 +5,7 @@
 //
 // LoaderStl.cpp
 //
-// Written by: <Your Name>
+// Written by: Steven Defreitas
 //
 // Software developed for the course
 // Digital Geometry Processing
@@ -50,70 +50,146 @@
 const char* LoaderStl::_ext = "stl";
 
 bool LoaderStl::load(const char* filename, SceneGraph& wrl) {
-  bool success = false;
+    bool success = false;
 
-  // clear the scene graph
-  wrl.clear();
-  wrl.setUrl("");
+    // clear the scene graph
+    wrl.clear();
+    wrl.setUrl("");
 
-  FILE* fp = (FILE*)0;
-  try {
+    FILE* fp = (FILE*)0;
+    try {
 
-    // open the file
-    if(filename==(char*)0) throw new StrException("filename==null");
-    fp = fopen(filename,"r");
-    if(fp==(FILE*)0) throw new StrException("fp==(FILE*)0");
+        // open the file
+        if(filename==(char*)0) throw new StrException("filename==null");
+        fp = fopen(filename,"r");
+        if(fp==(FILE*)0) throw new StrException("fp==(FILE*)0");
 
-    // use the io/Tokenizer class to parse the input ascii file
+        // use the io/Tokenizer class to parse the input ascii file
 
-    TokenizerFile tkn(fp);
-    // first token should be "solid"
-    if(tkn.expecting("solid") && tkn.get()) {
-      string stlName = tkn; // second token should be the solid name
+        TokenizerFile tkn(fp);
+        // first token should be "solid"
+        if(tkn.expecting("solid") && tkn.get()) {
+            string stlName = tkn; // second token should be the solid name
 
-      // TODO ...
+            // TODO ...
 
-      // create the scene graph structure :
-      // 1) the SceneGraph should have a single Shape node a child
-      // 2) the Shape node should have an Appearance node in its appearance field
-      // 3) the Appearance node should have a Material node in its material field
-      // 4) the Shape node should have an IndexedFaceSet node in its geometry node
+            // create the scene graph structure :
+            // 1) the SceneGraph should have a single Shape node a child
+            Shape* shape = new Shape();
+            wrl.addChild(shape);
 
-      // from the IndexedFaceSet
-      // 5) get references to the coordIndex, coord, and normal arrays
-      // 6) set the normalPerVertex variable to false (i.e., normals per face)  
+            // 2) the Shape node should have an Appearance node in its appearance field
+            Appearance* appearance = new Appearance();
+            shape->setAppearance(appearance);
 
-      // the file should contain a list of triangles in the following format
+            // 3) the Appearance node should have a Material node in its material field
+            Material* material = new Material();
+            appearance->setMaterial(material);
 
-      // facet normal ni nj nk
-      //   outer loop
-      //     vertex v1x v1y v1z
-      //     vertex v2x v2y v2z
-      //     vertex v3x v3y v3z
-      //   endloop
-      // endfacet
+            // 4) the Shape node should have an IndexedFaceSet node in its geometry node
+            // from the IndexedFaceSet
+            IndexedFaceSet* ifs = new IndexedFaceSet();
+            shape->setGeometry(ifs);
 
-      // - run an infinite loop to parse all the faces
-      // - write a private method to parse each face within the loop
-      // - the method should return true if successful, and false if not
-      // - if your method returns tru
-      //     update the normal, coord, and coordIndex variables
-      // - if your method returns false
-      //     throw an StrException explaining why the method failed
+            ifs->setName(stlName);
+
+            // 5) get references to the coordIndex, coord, and normal arrays
+            vector<int>& coordIndex = ifs->getCoordIndex();
+            vector<float>& coord = ifs->getCoord();
+            vector<float>& normal = ifs->getNormal();
+
+            // 6) set the normalPerVertex variable to false (i.e., normals per face)
+            ifs->setNormalPerVertex(false);
+
+            // the file should contain a list of triangles in the following format
+
+            // facet normal ni nj nk
+            //   outer loop
+            //     vertex v1x v1y v1z
+            //     vertex v2x v2y v2z
+            //     vertex v3x v3y v3z
+            //   endloop
+            // endfacet
+
+            // - run an infinite loop to parse all the faces
+            // - write a private method to parse each face within the loop
+            // - the method should return true if successful, and false if not
+            // - if your method returns tru
+            //     update the normal, coord, and coordIndex variables
+            // - if your method returns false
+            //     throw an StrException explaining why the method failed
+
+            int facetCount = 0;
+            while(true){
+                if(!parseFacet(tkn, coord, normal, coordIndex)){
+                    break;
+                }
+                facetCount++;
+            }
+
+            if(facetCount > 0){
+                success = true;
+            }
+
+        }
+
+        // close the file (this statement may not be reached)
+        fclose(fp);
+
+    } catch(StrException* e) {
+
+        if(fp!=(FILE*)0) fclose(fp);
+        fprintf(stderr,"ERROR | %s\n",e->what());
+        delete e;
 
     }
 
-    // close the file (this statement may not be reached)
-    fclose(fp);
-    
-  } catch(StrException* e) { 
-    
-    if(fp!=(FILE*)0) fclose(fp);
-    fprintf(stderr,"ERROR | %s\n",e->what());
-    delete e;
-
-  }
-
-  return success;
+    return success;
 }
 
+bool LoaderStl::parseFacet(TokenizerFile& tkn, vector<float>& coord,
+                           vector<float>& normal, vector<int>& coordIndex) {
+
+    if(!tkn.expecting("facet")) {
+        return false;
+    }
+
+    if(!tkn.expecting("normal")) {
+        return false;
+    }
+
+    float nx, ny, nz;
+    tkn.getFloat(nx);
+    tkn.getFloat(ny);
+    tkn.getFloat(nz);
+
+    normal.push_back(nx);
+    normal.push_back(ny);
+    normal.push_back(nz);
+
+    tkn.expecting("outer");
+    tkn.expecting("loop");
+
+    for(int i = 0; i < 3; i++){
+        tkn.expecting("vertex");
+
+        float vx, vy, vz;
+        tkn.getFloat(vx);
+        tkn.getFloat(vy);
+        tkn.getFloat(vz);
+
+        int vertexIndex = coord.size() / 3;
+        coordIndex.push_back(vertexIndex);
+
+        coord.push_back(vx);
+        coord.push_back(vy);
+        coord.push_back(vz);
+    }
+
+    coordIndex.push_back(-1);
+
+    tkn.expecting("endloop");
+    tkn.expecting("endfacet");
+
+    return true;
+}

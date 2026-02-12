@@ -5,7 +5,7 @@
 //
 // LoaderStl.hpp
 //
-// Written by: <Your Name>
+// Written by: Steven Defreitas
 //
 // Software developed for the course
 // Digital Geometry Processing
@@ -39,6 +39,7 @@
 
 #include "Loader.hpp"
 #include "Tokenizer.hpp"
+#include "TokenizerFile.hpp"
 
 #include "wrl/Node.hpp"
 
@@ -47,7 +48,9 @@ class LoaderStl : public Loader {
 private:
 
   const static char* _ext;
-
+    
+    bool parseFacet(TokenizerFile& tkn, vector<float>& coord, vector<float>& normal, vector<int>& coordIndex);
+    
 public:
 
   LoaderStl()  {};

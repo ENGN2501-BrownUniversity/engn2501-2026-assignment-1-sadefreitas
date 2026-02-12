@@ -5,7 +5,7 @@
 //
 // Faces.hpp
 //
-// Written by: <Your Name>
+// Written by: Steven Defreitas
 //
 // Software developed for the course
 // Digital Geometry Processing
@@ -89,8 +89,9 @@ public:
 
 private:
 
-  // TODO
-
+    int nV;
+    vector<int> coordIndex;
+    
 };
 
 #endif /* _FACES_HPP_ */

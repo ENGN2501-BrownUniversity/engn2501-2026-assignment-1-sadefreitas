@@ -5,7 +5,7 @@
 //
 // SaverStl.hpp
 //
-// Written by: <Your Name>
+// Written by: Steven Defreitas
 //
 // Software developed for the course
 // Digital Geometry Processing
